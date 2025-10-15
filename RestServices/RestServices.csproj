@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BusinessLayer1\BusinessLayer1.csproj" />
+    <ProjectReference Include="..\CrudProgram\CrudProgram.csproj" />
   </ItemGroup>
 
 </Project>
