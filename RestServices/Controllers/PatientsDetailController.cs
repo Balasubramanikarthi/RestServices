@@ -13,38 +13,82 @@ namespace RestServices.Controllers
     [ApiController]
     public class PatientsDetailController : ControllerBase
     {
-        JsonCRUDprogram crud = new JsonCRUDprogram();
+        private readonly JsonCRUDprogram _crud = new JsonCRUDprogram();
 
-        // GET: api/<PatientsDetailController>
+        // GET: api/patientsdetail
         [HttpGet]
-        public IEnumerable<string> Get()
+        public ActionResult<IEnumerable<PatientDetails>> GetAll()
         {
-            return new string[] { "value1", "value2" };
+            var patients = _crud.LoadData();
+            return Ok(patients);
         }
 
-        // GET api/<PatientsDetailController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
+        // GET: api/patientsdetail/1234567890
+        [HttpGet("{mobile}")]
+        public ActionResult<PatientDetails> GetByMobile(long mobile)
         {
-            return "value";
+            var patients = _crud.LoadData();
+            var patient = patients.FirstOrDefault(p => p.MobileNumber == mobile);
+
+            if (patient == null)
+                return NotFound($"Patient with mobile number {mobile} not found.");
+
+            return Ok(patient);
         }
 
-        // POST api/<PatientsDetailController>
+        // POST: api/patientsdetail
         [HttpPost]
-        public void Post([FromBody] string value)
+        public ActionResult AddPatient([FromBody] PatientDetails newPatient)
         {
+            if (newPatient == null)
+                return BadRequest("Invalid patient data.");
+
+            var patients = _crud.LoadData();
+
+            if (_crud.Duplicate(newPatient.MobileNumber, newPatient.Email))
+                return Conflict("This mobile number or email already exists.");
+
+            patients.Add(newPatient);
+            _crud.SaveData(patients);
+
+            return CreatedAtAction(nameof(GetByMobile), new { mobile = newPatient.MobileNumber }, newPatient);
         }
 
-        // PUT api/<PatientsDetailController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        // PUT: api/patientsdetail/1234567890
+        [HttpPut("{mobile}")]
+        public IActionResult UpdatePatient(long mobile, [FromBody] PatientDetails updated)
         {
+            if (updated == null)
+                return BadRequest("Invalid patient data.");
+
+            var patients = _crud.LoadData();
+            var existing = patients.FirstOrDefault(p => p.MobileNumber == mobile);
+
+            if (existing == null)
+                return NotFound($"Patient with mobile number {mobile} not found.");
+
+            existing.Name = updated.Name ?? existing.Name;
+            existing.Age = updated.Age != 0 ? updated.Age : existing.Age;
+            existing.Email = updated.Email ?? existing.Email;
+            existing.MobileNumber = updated.MobileNumber != 0 ? updated.MobileNumber : existing.MobileNumber;
+
+            _crud.SaveData(patients);
+            return NoContent();
         }
 
-        // DELETE api/<PatientsDetailController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
+        // DELETE: api/patientsdetail/1234567890
+        [HttpDelete("{mobile}")]
+        public IActionResult DeletePatient(long mobile)
         {
+            var patients = _crud.LoadData();
+            var patient = patients.FirstOrDefault(p => p.MobileNumber == mobile);
+
+            if (patient == null)
+                return NotFound($"Patient with mobile number {mobile} not found.");
+
+            patients.Remove(patient);
+            _crud.SaveData(patients);
+            return NoContent();
         }
     }
 }
